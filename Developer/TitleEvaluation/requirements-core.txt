@@ -1,0 +1,3 @@
+# Direct dependency pins; this is not a resolved transitive lockfile.
+PyYAML==6.0.2
+regex==2024.11.6
