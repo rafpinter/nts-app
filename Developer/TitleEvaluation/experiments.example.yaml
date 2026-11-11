@@ -1,0 +1,128 @@
+# Copy to benchmarks/title_generation/experiments.yaml with `init`.
+# Paths resolve relative to that ONE working file. No models are downloaded.
+schema_version: 1
+output_dir: results/title-experiments
+dataset:
+  path: data/public/2026-10-26/samples/development.jsonl
+  split: development
+  allow_private: false
+  manifest_path: data/public/2026-10-26/manifest.json
+  holdout_paths:
+    - data/public/2026-10-26/samples/test.jsonl
+
+# Add other unfine-tuned candidates here, pinned to immutable commits.
+models:
+  - name: qwen-baseline
+    enabled: true
+    model_id: mlx-community/Qwen3-0.6B-4bit
+    revision: 73e3e38d981303bc594367cd910ea6eb48349da8
+    local_path: models/qwen3-0.6b-4bit
+    role: baseline
+    quantization: 4bit
+  - name: qwen-adapted
+    enabled: false
+    model_id: mlx-community/Qwen3-0.6B-4bit
+    revision: 73e3e38d981303bc594367cd910ea6eb48349da8
+    local_path: models/qwen3-0.6b-4bit
+    adapter_from: qwen-title-training
+    role: fine_tuned
+    quantization: 4bit
+
+  # Optional candidates: provision/register the pinned snapshots before enabling.
+  # Author-published MLX conversion; 8-bit, unlike the 4-bit production baseline.
+  - name: smollm2-1.7b
+    enabled: true
+    model_id: HuggingFaceTB/SmolLM2-1.7B-Instruct-Q8-mlx
+    revision: 2bb0b4cebf6f2e93b23779a44f8b93e185609046
+    local_path: models/smollm2-1.7b-instruct-q8-mlx
+    role: candidate
+    quantization: 8bit
+  # Smallest general-purpose Gemma instruction model; loading remains unverified.
+  - name: gemma3-270m
+    enabled: true
+    model_id: mlx-community/gemma-3-270m-it-4bit
+    revision: ff1143e3a10547c9f2129e94ca37059b096b23f4
+    local_path: models/gemma-3-270m-it-4bit
+    role: candidate
+    quantization: 4bit
+
+seeds: [17]
+configurations:
+  # Always keep this unchanged anchor enabled. Values come from Swift production.
+  - name: production-control
+    enabled: true
+    models: [qwen-baseline]
+    production: true
+    baseline: true
+  # Enable for the trained Qwen and newly added candidates; list their names here.
+  - name: shared-control
+    enabled: false
+    models: [qwen-adapted, smollm2-1.7b, gemma3-270m]
+    production: true
+  - name: sampling-screen
+    enabled: false
+    models: [qwen-baseline, qwen-adapted]
+    generation:
+      temperature: [0.2, 0.8]
+      top_p: [0.9, 1.0]
+      top_k: [null, 20, 50]
+      # Other settings inherit the current production contract.
+    # Per-configuration seeds can override the top-level list.
+    seeds: [17]
+
+training:
+  - name: qwen-title-training
+    enabled: false
+    model: qwen-baseline
+    method: qlora
+    allow_private: false
+    # Use full normalized corpora; only train rows are selected. Validation comes
+    # from train groups and never from the evaluation development/test samples.
+    source_files: []
+    # Example: [data/public/2026-10-26/normalized/dialogsum_en.jsonl.gz]
+    validation_fraction: 0.1
+    max_validation_records: 120
+    # Alternatively provide separate normalized files instead of source_files.
+    train_files: []
+    validation_files: []
+    heldout_files:
+      - data/public/2026-10-26/samples/development.jsonl
+      - data/public/2026-10-26/samples/test.jsonl
+    max_train_records: 1000
+    seed: 17
+    max_input_characters: 4000
+    timeout_seconds: 3600
+    # Conservative PILOT proposal, not hardware-validated training advice.
+    hyperparameters:
+      batch_size: 1
+      num_layers: 4
+      iters: 100
+      learning_rate: 0.00001
+      steps_per_report: 10
+      steps_per_eval: 25
+      val_batches: 10
+      save_every: 25
+      max_seq_length: 2048
+      grad_accumulation_steps: 4
+      lora_rank: 8
+      lora_scale: 16
+      lora_dropout: 0.0
+      gradient_checkpoint: true
+
+scoring:
+  bootstrap_resamples: 10000
+  bootstrap_seed: 17
+  bertscore:
+    enabled: false
+    # Optional: model_path, model_sha256, model_revision, num_layers, batch_size.
+    # The encoder must already exist locally; no automatic downloads.
+tracking:
+  enabled: false
+  uri: sqlite:///results/title-experiments/mlflow.db
+  experiment_name: title-generation
+  artifact_root: results/title-experiments/mlflow-artifacts
+limits:
+  max_runs: 100
+  max_attempts_total: 100000
+  timeout_seconds: 3600
+  attempt_timeout_seconds: 120

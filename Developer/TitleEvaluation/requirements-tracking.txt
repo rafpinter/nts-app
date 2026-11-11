@@ -1,0 +1,4 @@
+-r requirements-core.txt
+mlflow==3.7.0
+# MLflow 3.7 imports a pool class removed in SQLAlchemy 2.1.
+SQLAlchemy==2.0.44

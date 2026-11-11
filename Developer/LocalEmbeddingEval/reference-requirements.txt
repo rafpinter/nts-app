@@ -1,0 +1,7 @@
+# Dev-only parity reference, isolated from the shipping app.
+torch==2.9.1
+transformers==4.57.3
+numpy==2.3.5
+safetensors==0.7.0
+tokenizers==0.22.2
+huggingface-hub==0.36.2

@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:note-taking-app}/Developer/LocalModelEval",
+            "name": "Debug LocalModelEval (Developer/LocalModelEval)",
+            "target": "LocalModelEval",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug LocalModelEval (Developer/LocalModelEval)"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:note-taking-app}/Developer/LocalModelEval",
+            "name": "Release LocalModelEval (Developer/LocalModelEval)",
+            "target": "LocalModelEval",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release LocalModelEval (Developer/LocalModelEval)"
+        }
+    ]
+}
